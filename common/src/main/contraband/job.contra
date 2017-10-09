@@ -1,0 +1,13 @@
+package hochgi.assignment.pp.job
+@target(Scala)
+@codecPackage("hochgi.assignment.pp.job")
+@fullCodec("JobJsonProtocol")
+
+type Job {
+  id: String!
+  cloudQueries: [hochgi.assignment.pp.job.Query]!
+}
+
+type Query {
+  partOfJob: String!
+}
