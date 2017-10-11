@@ -17,6 +17,7 @@ lazy val common = (project in file("common"))
   commonSettings,
   name := "common",
   libraryDependencies ++= Seq(
+    "com.typesafe.akka" %% "akka-actor" % Versions.akka,
     "com.eed3si9n" %% "sjson-new-scalajson" % "0.8.1",
     "org.lz4" % "lz4-java" % "1.4.0")
   // we can use a nice trick to automatically set `Job` versions according to git with sbt-buildinfo plugin
@@ -32,7 +33,9 @@ lazy val jobDispatcher = (project in file("job-dispatcher"))
   .settings(
     commonSettings,
     name := "job-dispatcher",
-    libraryDependencies += "com.typesafe.akka" %% "akka-stream-kafka" % "0.17"
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-stream-kafka" % Versions.akkaStreamKafka,
+      "com.typesafe.akka" %% "akka-stream" % Versions.akka)
   )
 
 lazy val worker = (project in file("worker"))
@@ -40,5 +43,17 @@ lazy val worker = (project in file("worker"))
   .settings(
     commonSettings,
     name := "worker",
-    libraryDependencies += "com.typesafe.akka" %% "akka-stream-kafka" % "0.17"
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-stream-kafka" % Versions.akkaStreamKafka,
+      "com.typesafe.akka" %% "akka-stream" % Versions.akka)
+  )
+
+lazy val throttlingService = (project in file("throttling-service"))
+  .dependsOn(common)
+  .settings(
+    commonSettings,
+    name := "throttling-service",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-remote" % Versions.akka,
+      "com.typesafe.akka" %% "akka-stream" % Versions.akka)
   )

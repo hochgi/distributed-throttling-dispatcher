@@ -1,0 +1,43 @@
+package hochgi.assignment.pp.throttle
+@target(Scala)
+@codecPackage("hochgi.assignment.pp.throttle.codec")
+@codecTypeField("type")
+@fullCodec("ThrottleJsonProtocol")
+
+## worker request permission to make a cloud query
+type Request {
+    id: String!
+}
+
+## eagerly grant execution permission if we can,
+## worker should get RequestAck or resend Request after timeout
+type RequestAck {
+    forRequestID: String!
+    canExecute: Boolean!
+}
+
+## if RequestAck granted permission, service must get AckAck, or will resend RequestAck after timeout
+type AckAck {
+    forRequestID: String!
+}
+
+## if permission wasn't granted eagerly, worker will eventually get permission
+type PermissionToExecute {
+    forRequestID: String!
+}
+
+## if granted permission, service must get PermissionToExecuteAck, or will resend PermissionToExecute after timeout
+type PermissionToExecuteAck {
+    forRequestID: String!
+}
+
+## worker must report execution is completed
+type ExecutionCompleted {
+    forRequestID: String!
+}
+
+## worker should get ExecutionCompletedAck or resend ExecutionCompleted after timeout
+type ExecutionCompletedAck {
+    forRequestID: String!
+}
+
