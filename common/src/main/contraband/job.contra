@@ -1,13 +1,45 @@
 package hochgi.assignment.pp.job
 @target(Scala)
-@codecPackage("hochgi.assignment.pp.job")
+@codecPackage("hochgi.assignment.pp.job.codec")
+@codecTypeField("type")
 @fullCodec("JobJsonProtocol")
 
 type Job {
-  id: String!
-  cloudQueries: [hochgi.assignment.pp.job.Query]!
+    id: String!
+    workerType: hochgi.assignment.pp.job.WorkerType!
+    cloudCall: hochgi.assignment.pp.job.Request
+    extra: String
 }
 
-type Query {
-  partOfJob: String!
+enum WorkerType {
+    Forwarder
+    Ignorer
+}
+
+type Request {
+    url: String!
+    method: hochgi.assignment.pp.job.Method!
+    body: String
+    headers: [hochgi.assignment.pp.job.Header]!
+    queryParams: [hochgi.assignment.pp.job.QueryParameter]!
+}
+
+enum Method {
+    Get
+    Post
+    Put
+    Delete
+    Head
+    Options
+    Connect
+}
+
+type Header {
+    key: String!
+    values: [String]!
+}
+
+type QueryParameter {
+    key: String!
+    values: [String]!
 }
