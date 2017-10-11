@@ -4,40 +4,64 @@ package hochgi.assignment.pp.throttle
 @codecTypeField("type")
 @fullCodec("ThrottleJsonProtocol")
 
+## this will enable simple deserialization of throttling messages
+## each implementing class should return a unique (arbitray) value
+## note this schema support only 256 possible message types.
+interface ThrottlingMessage {
+    #xcompanion def serializationID(throttlingMessage: ThrottlingMessage): Byte = throttlingMessage match {
+    #xcompanion     case _: Request => 0
+    #xcompanion     case _: RequestAck => 1
+    #xcompanion     case _: AckAck => 2
+    #xcompanion     case _: PermissionToExecute => 3
+    #xcompanion     case _: PermissionToExecuteAck => 4
+    #xcompanion     case _: ExecutionCompleted => 5
+    #xcompanion     case _: ExecutionCompletedAck => 6
+    #xcompanion }
+    #xcompanion def fromJsonAndSerializationID(serializationID: Byte): sjsonnew.JsonFormat[_ <: ThrottlingMessage] = serializationID match {
+    #xcompanion     case 0 => codec.ThrottleJsonProtocol.RequestFormat
+    #xcompanion     case 1 => codec.ThrottleJsonProtocol.RequestAckFormat
+    #xcompanion     case 2 => codec.ThrottleJsonProtocol.AckAckFormat
+    #xcompanion     case 3 => codec.ThrottleJsonProtocol.PermissionToExecuteFormat
+    #xcompanion     case 4 => codec.ThrottleJsonProtocol.PermissionToExecuteAckFormat
+    #xcompanion     case 5 => codec.ThrottleJsonProtocol.ExecutionCompletedFormat
+    #xcompanion     case 6 => codec.ThrottleJsonProtocol.ExecutionCompletedAckFormat
+    #xcompanion }
+}
+
 ## worker request permission to make a cloud query
-type Request {
+type Request implements ThrottlingMessage {
     id: String!
 }
 
 ## eagerly grant execution permission if we can,
 ## worker should get RequestAck or resend Request after timeout
-type RequestAck {
+type RequestAck implements ThrottlingMessage {
     forRequestID: String!
     canExecute: Boolean!
 }
 
 ## if RequestAck granted permission, service must get AckAck, or will resend RequestAck after timeout
-type AckAck {
+type AckAck implements ThrottlingMessage {
     forRequestID: String!
 }
 
 ## if permission wasn't granted eagerly, worker will eventually get permission
-type PermissionToExecute {
+type PermissionToExecute implements ThrottlingMessage {
     forRequestID: String!
 }
 
 ## if granted permission, service must get PermissionToExecuteAck, or will resend PermissionToExecute after timeout
-type PermissionToExecuteAck {
+type PermissionToExecuteAck implements ThrottlingMessage {
     forRequestID: String!
 }
 
 ## worker must report execution is completed
-type ExecutionCompleted {
+type ExecutionCompleted implements ThrottlingMessage {
     forRequestID: String!
 }
 
 ## worker should get ExecutionCompletedAck or resend ExecutionCompleted after timeout
-type ExecutionCompletedAck {
+type ExecutionCompletedAck implements ThrottlingMessage {
     forRequestID: String!
 }
 

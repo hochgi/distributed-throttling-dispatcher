@@ -1,20 +1,57 @@
 package hochgi.assignment.pp.serialization
 
+import java.io.NotSerializableException
+import java.nio.charset.StandardCharsets
+
 import akka.actor.ExtendedActorSystem
-import akka.event.Logging
+import akka.event.{LogSource, Logging}
 import akka.serialization.Serializer
+import hochgi.assignment.pp.throttle._
+import hochgi.assignment.pp.throttle.codec.ThrottleJsonProtocol._
+import hochgi.assignment.pp.util.LZ4
+import sjsonnew.JsonFormat
+import sjsonnew.support.scalajson.unsafe.{CompactPrinter, Converter, Parser}
 
 class ThrottlingMessagesSerializer(actorSystem: ExtendedActorSystem) extends Serializer {
 
-//  private val logger = Logging(actorSystem, this)
+  private implicit val logSource = new LogSource[ThrottlingMessagesSerializer] {
+    override def genString(t: ThrottlingMessagesSerializer) = s"ThrottlingMessagesSerializer~$toString"
+  }
+  private val logger = Logging(actorSystem, this)
 
   override def identifier = 786
 
   override def toBinary(o: AnyRef) = o match {
-    case _ => Array.emptyByteArray
+    case r: Request => toJsonAndThenLZ4(r)
+    case r: RequestAck => toJsonAndThenLZ4(r)
+    case r: AckAck => toJsonAndThenLZ4(r)
+    case r: PermissionToExecute => toJsonAndThenLZ4(r)
+    case r: PermissionToExecuteAck => toJsonAndThenLZ4(r)
+    case r: ExecutionCompleted => toJsonAndThenLZ4(r)
+    case r: ExecutionCompletedAck => toJsonAndThenLZ4(r)
   }
 
-  override def includeManifest = true
+  private def toJsonAndThenLZ4[T <: ThrottlingMessage : JsonFormat](t: T): Array[Byte] = {
+    val json = Converter.toJsonUnsafe(t)
+    val bytes = CompactPrinter(json).getBytes(StandardCharsets.UTF_8)
+    LZ4.compress(ThrottlingMessage.serializationID(t) +: bytes)
+  }
 
-  override def fromBinary(bytes: Array[Byte], manifest: Option[Class[_]]) = ???
+  override def includeManifest = false
+
+  override def fromBinary(bytes: Array[Byte], manifest: Option[Class[_]]) = {
+    try {
+      val data = LZ4.decompress(bytes)
+      val jstr = new String(data.tail, StandardCharsets.UTF_8)
+      val json = Parser.parseFromString(jstr).get
+      val frmt = ThrottlingMessage.fromJsonAndSerializationID(data.head)
+      val tmsg = Converter.fromJson(json)(frmt).get
+      tmsg
+    } catch {
+      case err: Throwable => {
+        logger.error(err,"deserialization failed")
+        throw new NotSerializableException("deserialization failed: " + err.getMessage)
+      }
+    }
+  }
 }
