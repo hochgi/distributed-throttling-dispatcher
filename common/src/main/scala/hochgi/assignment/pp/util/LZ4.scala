@@ -1,19 +1,12 @@
 package hochgi.assignment.pp.util
 
-import java.nio.charset.StandardCharsets
-
-import com.typesafe.config.ConfigFactory
 import net.jpountz.lz4.LZ4Factory
-import net.jpountz.xxhash.XXHashFactory
 
 // TODO: if JNI binding isn't a problem we can use ZSTD instead of LZ4
 object LZ4 {
 
   private lazy val lz4Factory = LZ4Factory.fastestJavaInstance()
-  private lazy val xxhashFactory = XXHashFactory.fastestJavaInstance()
   private val maxMessageLength = 1 << 16 - 1
-  private val config = ConfigFactory.load()
-  private val hashSeed = config.getInt("hochgi.assignment.pp.serialization.hash-seed")
 
   def compress(bytes: Array[Byte]): Array[Byte] = {
     val length = bytes.length
@@ -50,6 +43,7 @@ object LZ4 {
     checksum +: payload
   }
 
-  def verificationByte(compressedWithLengthHeader: Array[Byte]): Byte =
-    xxhashFactory.hash32().hash(compressedWithLengthHeader,0,compressedWithLengthHeader.length,hashSeed).toByte
+  def verificationByte(compressedWithLengthHeader: Array[Byte]): Byte = {
+    Hash(compressedWithLengthHeader).toByte
+  }
 }

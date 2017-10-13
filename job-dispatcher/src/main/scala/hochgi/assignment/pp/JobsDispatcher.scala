@@ -19,7 +19,6 @@ object JobsDispatcher {
     override def configure(configs: java.util.Map[String, _], isKey: Boolean) = {
       // irrelevant
     }
-    //NICE TO HAVE: LZ4 conditional compression
     override def serialize(topic: String, data: Job) = {
       val j = Converter.toJsonUnsafe(data)(codec.JobJsonProtocol.JobFormat)
       CompactPrinter(j).getBytes(StandardCharsets.UTF_8)

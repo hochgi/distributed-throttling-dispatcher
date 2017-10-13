@@ -1,9 +1,10 @@
 package hochgi.assignment.pp
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Terminated}
+import hochgi.assignment.pp.actors.Cancellables
 import hochgi.assignment.pp.throttle._
 
-import scala.collection.mutable.{Map => MMap, Set => MSet, Queue => MQueue}
+import scala.collection.mutable.{Map => MMap, Queue => MQueue, Set => MSet}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -39,9 +40,8 @@ class ThrottlingServiceActor private(ackTimeout: FiniteDuration,
                                      concurrentRequestsSlidingWindow: FiniteDuration,
                                      dailyQuota: Int,
                                      dailyQuotaSlidingWindowSegmentMinutes: Int)(
-                                     implicit executionContext: ExecutionContext) extends Actor {
+                                     implicit executionContext: ExecutionContext) extends Actor with Cancellables {
 
-  private val cancellables = MMap.empty[String,Cancellable]
   private var concurrentQuotaWithCoolOffCounter = 0
   private var dailyQuotaSlidingWindowIndex = 0
   private var dailyTotal = 0
@@ -77,7 +77,7 @@ class ThrottlingServiceActor private(ackTimeout: FiniteDuration,
         }
         val cesr = canExecuteSingleRequest
         val cancellable = context.system.scheduler.schedule(ackTimeout, ackTimeout, aref, RequestAck(reqID, cesr))
-        cancellables += reqID -> cancellable
+        addTimer(reqID, cancellable)
         if (cesr) activate(reqID, aref)
         else {
           pending += reqID
@@ -108,13 +108,6 @@ class ThrottlingServiceActor private(ackTimeout: FiniteDuration,
     executing.contains(reqID) || pending(reqID)
   }
 
-  private def cancelTimer(reqID: String): Unit = {
-    cancellables.get(reqID).foreach { cancellable =>
-      cancellable.cancel()
-      cancellables -= reqID
-    }
-  }
-
   private def handleExecutionCompleted(reqID: String): Unit = {
     cancelTimer(reqID) // Worker may have omitted PermissionToExecuteAck
     executing.get(reqID).fold(sender() ! ExecutionCompletedAck(reqID)){ aref =>
@@ -134,13 +127,13 @@ class ThrottlingServiceActor private(ackTimeout: FiniteDuration,
     context.unwatch(aref)
     executing.find(_._2 == aref).fold(pendingExecution.foreach {
         case (`aref`,reqID) => {
-          cancellables -= reqID
+          cancelTimer(reqID)
           pending -= reqID
         }
         case _ => // DO NOTHING
       }) {
       case (reqID,_) => {
-        cancellables -= reqID
+        cancelTimer(reqID)
         executing -= reqID
         context.system.scheduler.scheduleOnce(concurrentRequestsSlidingWindow, self, CoolOffTimeout)
       }
@@ -160,7 +153,7 @@ class ThrottlingServiceActor private(ackTimeout: FiniteDuration,
     val (aref,reqID) = pendingExecution.dequeue()
     aref ! PermissionToExecute(reqID)
     val cancellable = context.system.scheduler.schedule(ackTimeout, ackTimeout, aref, PermissionToExecute(reqID))
-    cancellables += reqID -> cancellable
+    addTimer(reqID, cancellable)
     activate(reqID, aref)
   }
 }
