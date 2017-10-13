@@ -16,6 +16,7 @@ interface ThrottlingMessage {
     #xcompanion     case _: PermissionToExecuteAck => 4
     #xcompanion     case _: ExecutionCompleted => 5
     #xcompanion     case _: ExecutionCompletedAck => 6
+    #xcompanion     case _: RequestIdCollision => 7
     #xcompanion }
     #xcompanion def fromJsonAndSerializationID(serializationID: Byte): sjsonnew.JsonFormat[_ <: ThrottlingMessage] = serializationID match {
     #xcompanion     case 0 => codec.ThrottleJsonProtocol.RequestFormat
@@ -25,6 +26,7 @@ interface ThrottlingMessage {
     #xcompanion     case 4 => codec.ThrottleJsonProtocol.PermissionToExecuteAckFormat
     #xcompanion     case 5 => codec.ThrottleJsonProtocol.ExecutionCompletedFormat
     #xcompanion     case 6 => codec.ThrottleJsonProtocol.ExecutionCompletedAckFormat
+    #xcompanion     case 7 => codec.ThrottleJsonProtocol.RequestIdCollisionFormat
     #xcompanion }
 }
 
@@ -65,3 +67,7 @@ type ExecutionCompletedAck implements ThrottlingMessage {
     forRequestID: String!
 }
 
+## when a worker chooses invalid request id
+type RequestIdCollision implements ThrottlingMessage {
+    id: String!
+}
