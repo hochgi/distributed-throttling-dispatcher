@@ -21,14 +21,9 @@ class ThrottlingMessagesSerializer(actorSystem: ExtendedActorSystem) extends Ser
 
   override def identifier = 786
 
-  override def toBinary(o: AnyRef) = o match {
-    case r: Request => toJsonAndThenLZ4(r)
-    case r: RequestAck => toJsonAndThenLZ4(r)
-    case r: AckAck => toJsonAndThenLZ4(r)
-    case r: PermissionToExecute => toJsonAndThenLZ4(r)
-    case r: PermissionToExecuteAck => toJsonAndThenLZ4(r)
-    case r: ExecutionCompleted => toJsonAndThenLZ4(r)
-    case r: ExecutionCompletedAck => toJsonAndThenLZ4(r)
+  override def toBinary(o: AnyRef) = {
+    if(o.isInstanceOf[ThrottlingMessage]) toJsonAndThenLZ4(o.asInstanceOf[ThrottlingMessage])
+    else throw new NotSerializableException(s"cannot deserialize ${o.getClass().getName} using hochgi.assignment.pp.serialization.ThrottlingMessagesSerializer")
   }
 
   private def toJsonAndThenLZ4[T <: ThrottlingMessage : JsonFormat](t: T): Array[Byte] = {

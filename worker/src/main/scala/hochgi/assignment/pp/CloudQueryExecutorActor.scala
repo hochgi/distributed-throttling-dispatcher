@@ -64,9 +64,9 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
     case ThrottledRequest(reqID) => handleNewThrottledRequest(reqID)
     case ExecutionDone(reqID) => handleExecutionDone(reqID)
     case ric: RequestIdCollision => handleCollision(ric.id)
-    case ra: RequestAck if ra.canExecute => handlePermitExecution(ra.forRequestID)
+    case ra: RequestAck if ra.canExecute => handlePermissionToExecute(ra.forRequestID,AckAck(ra.forRequestID))
     case ra: RequestAck => handleRequestAck(ra.forRequestID)
-    case pte: PermissionToExecute => handlePermissionToExecute(pte.forRequestID)
+    case pte: PermissionToExecute => handlePermissionToExecute(pte.forRequestID,PermissionToExecuteAck(pte.forRequestID))
     case eca: ExecutionCompletedAck => handleExecutionCompletedAck(eca.forRequestID)
   }
 
@@ -81,9 +81,9 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
   private def handleNewThrottledRequest(reqID: String): Unit = {
     val r = Request(reqID)
     throttlingService ! r
-    reqIdMap += reqID -> reqID
     val cancellable = context.system.scheduler.schedule(ackTimeout,ackTimeout,throttlingService,r)
     addTimer(reqID, cancellable)
+    reqIdMap += reqID -> reqID
     stateMap += reqID -> Initiating
   }
 
@@ -106,8 +106,11 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
   }
 
   private def handleRequestAck(reqID: String): Unit = {
-    cancelTimer(reqID)
-    stateMap += reqID -> Pending
+    if(stateMap(reqID) eq Initiating) {
+      cancelTimer(reqID)
+      stateMap += reqID -> Pending
+    }
+    throttlingService ! AckAck
   }
 
   private def handlePermitExecution(reqID: String): Unit = {
@@ -119,6 +122,7 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
   }
 
   private def handleExecutionDone(reqID: String): Unit = {
+    throttlingService ! ExecutionCompleted(reqID)
     val cancellable = context.system.scheduler.schedule(ackTimeout,ackTimeout,throttlingService,ExecutionCompleted(reqID))
     addTimer(reqID, cancellable)
     stateMap += reqID -> Finished
@@ -129,11 +133,11 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
     stateMap -= reqID
   }
 
-  private def handlePermissionToExecute(reqID: String): Unit = {
-    throttlingService ! PermissionToExecuteAck(reqID)
+  private def handlePermissionToExecute(reqID: String, ack: ThrottlingMessage): Unit = {
+    throttlingService ! ack
     stateMap.get(reqID) match {
       case Some(Initiating | Pending) => handlePermitExecution(reqID)
-      case _ => // Do Nothing (other than ack-ing which we already did
+      case _ => // Do Nothing (other than ack-ing which we already did)
     }
   }
 }

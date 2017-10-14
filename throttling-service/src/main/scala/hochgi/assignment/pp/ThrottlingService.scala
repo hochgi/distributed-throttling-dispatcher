@@ -2,11 +2,9 @@ package hochgi.assignment.pp
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
-
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import hochgi.assignment.pp.util.toFiniteDuration
 
 object ThrottlingService extends App {
-  implicit def toFiniteDuration(d: java.time.Duration): FiniteDuration = Duration.fromNanos(d.toNanos)
   val config = ConfigFactory.load()
   val actorSystemName = config.getString("hochgi.assignment.pp.throttling.actor-system")
   val system = ActorSystem(actorSystemName, config.getConfig("hochgi.assignment.pp.throttling.akka").withFallback(config))
