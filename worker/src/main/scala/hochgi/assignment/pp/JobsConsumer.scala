@@ -41,7 +41,8 @@ object JobsConsumer extends LazyLogging {
   def source(config: Config)(implicit actorSystem: ActorSystem): Source[CommittableMessage[String, Job], Control]= {
     val topic = config.getString("hochgi.assignment.pp.kafka.topic")
     val consumerSettings = ConsumerSettings(actorSystem, Serdes.String().deserializer(), jobDeserializer)
-      .withBootstrapServers(config.getString("hochgi.assignment.pp.kafka.bootstrap.servers"))
+      .withBootstrapServers(config.getString("hochgi.assignment.pp.kafka.bootstrap-servers"))
+      .withGroupId(config.getString("hochgi.assignment.pp.kafka.group-id"))
     Consumer.committableSource(consumerSettings, Subscriptions.topics(topic))
   }
 }

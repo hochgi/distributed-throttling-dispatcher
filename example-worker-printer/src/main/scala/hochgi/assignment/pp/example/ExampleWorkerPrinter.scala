@@ -23,8 +23,7 @@ import scala.util.{Failure, Success}
 object ExampleWorkerPrinter extends App with LazyLogging {
 
   val config = ConfigFactory.load()
-  System.getProperties.setProperty("bootstrap.servers",config.getString("hochgi.assignment.pp.kafka.bootstrap.servers"))
-  implicit val system = ActorSystem("example-worker-ignorer", config.getConfig("hochgi.assignment.pp.throttling.akka").withFallback(config))
+  implicit val system = ActorSystem("example-worker-printer", config.getConfig("hochgi.assignment.pp.throttling.akka").withFallback(config))
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 
