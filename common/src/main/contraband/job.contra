@@ -12,7 +12,7 @@ type Job {
 }
 
 enum WorkerType {
-    Forwarder
+    Printer
     Ignorer
 }
 

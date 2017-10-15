@@ -35,7 +35,8 @@ lazy val jobDispatcher = (project in file("job-dispatcher"))
     name := "job-dispatcher",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream-kafka" % Versions.akkaStreamKafka,
-      "com.typesafe.akka" %% "akka-stream" % Versions.akka)
+      "com.typesafe.akka" %% "akka-stream" % Versions.akka,
+      "com.typesafe.akka" %% "akka-remote" % Versions.akka)
   )
 
 lazy val worker = (project in file("worker"))
@@ -45,15 +46,49 @@ lazy val worker = (project in file("worker"))
     name := "worker",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream-kafka" % Versions.akkaStreamKafka,
-      "com.typesafe.akka" %% "akka-stream" % Versions.akka)
+      "com.typesafe.akka" %% "akka-stream" % Versions.akka,
+      "com.typesafe.akka" %% "akka-remote" % Versions.akka)
   )
 
 lazy val throttlingService = (project in file("throttling-service"))
+  .enablePlugins(JavaAppPackaging)
   .dependsOn(common)
   .settings(
     commonSettings,
     name := "throttling-service",
+    mainClass in Compile := Some("hochgi.assignment.pp.ThrottlingService"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-remote" % Versions.akka,
       "com.typesafe.akka" %% "akka-stream" % Versions.akka)
+  )
+
+/*
+ * EXAMPLE IMPLEMENTATIONS
+ */
+
+lazy val exampleJobDispatcher = (project in file("example-job-dispatcher"))
+  .enablePlugins(JavaAppPackaging)
+  .dependsOn(jobDispatcher)
+  .settings(
+    commonSettings,
+    name := "example-job-dispatcher",
+    mainClass in Compile := Some("hochgi.assignment.pp.example.ExampleJobDispatcher")
+  )
+
+lazy val exampleWorkerIgnorer = (project in file("example-worker-ignorer"))
+  .enablePlugins(JavaAppPackaging)
+  .dependsOn(worker)
+  .settings(
+    commonSettings,
+    name := "example-worker-ignorer",
+    mainClass in Compile := Some("hochgi.assignment.pp.example.ExampleWorkerIgnorer")
+  )
+
+lazy val exampleWorkerPrinter = (project in file("example-worker-printer"))
+  .enablePlugins(JavaAppPackaging)
+  .dependsOn(worker)
+  .settings(
+    commonSettings,
+    name := "example-worker-printer",
+    mainClass in Compile := Some("hochgi.assignment.pp.example.ExampleWorkerPrinter")
   )

@@ -20,7 +20,7 @@ object ThrottlingServiceProvider {
 
   def getService(system: ActorSystem) = {
     // TODO: more resilient ref resolution
-    system.actorSelection(s"akka://$throttlingSystem@$throttlingHostname:$throttlingPort/user/$throttlingActorName").resolveOne(5.minutes)
+    system.actorSelection(s"akka.tcp://$throttlingSystem@$throttlingHostname:$throttlingPort/user/$throttlingActorName").resolveOne(5.minutes)
   }
 }
 

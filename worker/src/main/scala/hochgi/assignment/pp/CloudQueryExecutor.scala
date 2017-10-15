@@ -35,8 +35,8 @@ object CloudQueryExecutor {
     *                       since it is called from within an actor.
     *                       In case of doubt, wrap your call with [[Future.apply()]]
     */
-  def flow[T](system: ActorSystem, throttlingService: ActorRef)(executeRequest: Request => Future[T])(implicit ec: ExecutionContext): Flow[Request,T,NotUsed] =
-    Flow.fromGraph(new CloudQueryExecutor(maxConcurrentRequests,maxRequestIdLength,ackTimeout,system,throttlingService,executeRequest))
+  def flow[T](system: ActorSystem, throttlingService: ActorRef)(executeRequest: Request => Future[T])(implicit ec: ExecutionContext): Graph[FlowShape[Request,T],NotUsed] =
+    new CloudQueryExecutor(maxConcurrentRequests,maxRequestIdLength,ackTimeout,system,throttlingService,executeRequest)
 }
 
 class CloudQueryExecutor[T](maxConcurrentRequests: Int,
