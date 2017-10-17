@@ -1,0 +1,17 @@
+# start kafka & create topic
+
+bin/zookeeper-server-start.sh config/zookeeper.properties
+bin/kafka-server-start.sh config/server.properties
+bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 2 --topic pp_jobs
+
+# cd project dir, build projects
+
+sbt throttlingService/stage exampleWorkerIgnorer/stage exampleWorkerPrinter/stage exampleJobDispatcher/stage
+
+# from project dir, start processes
+
+throttling-service/target/universal/stage/bin/throttling-service
+example-job-dispatcher/target/universal/stage/bin/example-job-dispatcher
+example-worker-printer/target/universal/stage/bin/example-worker-printer
+example-worker-ignorer/target/universal/stage/bin/example-worker-ignorer
+

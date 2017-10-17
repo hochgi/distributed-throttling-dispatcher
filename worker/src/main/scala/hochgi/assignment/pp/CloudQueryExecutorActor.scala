@@ -20,12 +20,12 @@ object CloudQueryExecutorActor {
             ackTimeout: FiniteDuration,
             throttlingService: ActorRef,
             shutdown: () => Unit,
-            invokeOne: () => Future[Done]): Props = {
-    Props(new CloudQueryExecutorActor(maxRequestIdLength: Int,
-                                      ackTimeout: FiniteDuration,
-                                      throttlingService: ActorRef,
-                                      shutdown: () => Unit,
-                                      invokeOne: () => Future[Done])(
+            invokeOne: String => Future[Done]): Props = {
+    Props(new CloudQueryExecutorActor(maxRequestIdLength,
+                                      ackTimeout,
+                                      throttlingService,
+                                      shutdown,
+                                      invokeOne)(
                                       ExecutionContext.global)) // in a real-world app, `global` might not be a good execution context
   }
 
@@ -45,7 +45,7 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
                                       ackTimeout: FiniteDuration,
                                       throttlingService: ActorRef,
                                       shutdown: () => Unit,
-                                      invokeOne: () => Future[Done])(
+                                      invokeOne: String => Future[Done])(
                                       implicit executionContext: ExecutionContext) extends Actor with Cancellables {
 
   // stateMap is currently used only for ack resends,
@@ -116,7 +116,7 @@ class CloudQueryExecutorActor private(maxRequestIdLength: Int,
   private def handlePermitExecution(reqID: String): Unit = {
     cancelTimer(reqID)
     stateMap += reqID -> Executing
-    invokeOne().map { _ =>
+    invokeOne(reqIdMap(reqID)).map { _ =>
       ExecutionDone(reqID)
     }.pipeTo(self)
   }

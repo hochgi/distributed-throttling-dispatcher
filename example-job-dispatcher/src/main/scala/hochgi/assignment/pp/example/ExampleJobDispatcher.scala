@@ -20,7 +20,6 @@ import scala.util.{Failure, Success}
 object ExampleJobDispatcher extends App with LazyLogging  {
 
   val config = ConfigFactory.load()
-  System.getProperties.setProperty("bootstrap.servers",config.getString("hochgi.assignment.pp.kafka.bootstrap.servers"))
   implicit val system = ActorSystem("example-job-dispatcher", config.getConfig("hochgi.assignment.pp.throttling.akka").withFallback(config))
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
@@ -53,7 +52,7 @@ object ExampleJobDispatcher extends App with LazyLogging  {
         else Printer
       }
       // you'll want an actual request here...
-      val r: Option[Request] = Some(Request("http://google.com",Method.Get,None,Vector.empty,Vector.empty))
+      val r: Option[Request] = Some(Request(s"http://example.com/$randomString",Method.Get,None,Vector.empty,Vector.empty))
       // can be used to describe any other work the worker should perform other than throttled cloud calls.
       // if both (request & extra) exist, you can use non optional API
       val extra: Option[String] = None

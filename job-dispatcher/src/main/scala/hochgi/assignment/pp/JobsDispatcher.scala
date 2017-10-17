@@ -36,7 +36,7 @@ object JobsDispatcher {
     require(numOfPartitions > 0, s"invalid number of partitions defined[$numOfPartitions]. configure `hochgi.assignment.pp.kafka.num-of-partitions` property properly")
 
     val producerSettings = ProducerSettings(actorSystem, Serdes.String().serializer(), jobSerializer)
-      .withBootstrapServers(config.getString("hochgi.assignment.pp.kafka.bootstrap.servers"))
+      .withBootstrapServers(config.getString("hochgi.assignment.pp.kafka.bootstrap-servers"))
 
     Flow[Job].statefulMapConcat[ProducerRecord[String, Job]](() => {
       val pAssigner = partitionAssigner()

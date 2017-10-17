@@ -41,12 +41,17 @@ object ExampleWorkerPrinter extends App with LazyLogging {
             // but ignorer just ignores.
 
             // let's simulate an actual request time
-            val millis = req.hashCode % 1024
-            println(s"printing a request that should take ${millis}ms")
+            val millis = math.abs(req.hashCode % 1024)
+            val string = s"* printing a request[${req.url}] that should take ${millis}ms *"
+            val astrix = string.map(_ => '*')
+            println(astrix + "\n" + string + "\n" + astrix)
             val p = Promise[Done]
             system.scheduler.scheduleOnce(millis.millis)(p.success(Done))
             p.future.andThen {
-              case _ => println(s"request completed after ${millis}ms")
+              case _ =>
+                val string = s"| request[${req.url}] completed after ${millis}ms |"
+                val hyphen = string.map(_ => '-')
+                println(hyphen + "\n" + string + "\n" + hyphen)
             }
           })
           val zip = b.add(Zip[CommittableOffset, Done])
